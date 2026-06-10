@@ -45,12 +45,20 @@ pipeline {
                     steps {
                         script {
                             sh '''
-                                docker compose down || true
-                                docker rm -f test-user || true
-                                docker run -d --name test-user -p 5000:5000 ${DOCKER_HUB_USER}/user-service:${BUILD_NUMBER}
-                                sleep 5
-                                curl -f http://localhost:5000/health || exit 1
-                                docker rm -f test-user
+                            docker stop $(docker ps -q) || true
+                            docker rm -f test-user test-order || true
+                        
+                            echo "=== Testing User Service ==="
+                            docker run -d --name test-user -p 5000:5000 ${DOCKER_HUB_USER}/user-service:${BUILD_NUMBER}
+                            sleep 5
+                            curl -f http://localhost:5000/health || exit 1
+                            docker rm -f test-user
+                            
+                            echo "=== Testing Order Service ==="
+                            docker run -d --name test-order -p 3000:3000 ${DOCKER_HUB_USER}/order-service:${BUILD_NUMBER}
+                            sleep 5
+                            curl -f http://localhost:3000/health || exit 1
+                            docker rm -f test-order
                             '''
                         }
                     }
