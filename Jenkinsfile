@@ -42,7 +42,6 @@ pipeline {
         stage('Test Services') {
             steps {
                 sh '''
-                    # Удаляем старые тестовые контейнеры, если они остались
                     docker rm -f test-user test-order || true
                     
                     echo "=== Testing User Service ==="
@@ -52,7 +51,6 @@ pipeline {
                     docker rm -f test-user
                     
                     echo "=== Testing Order Service ==="
-                    # ВНИМАНИЕ: Используем порт 3001 на хосте, чтобы избежать конфликта с занятым 3000
                     docker run -d --name test-order -p 3001:3000 ${DOCKER_HUB_USER}/order-service:${BUILD_NUMBER}
                     sleep 5
                     curl -f http://localhost:3001/health || exit 1
@@ -64,39 +62,47 @@ pipeline {
         stage('Push Images') {
             parallel {
                 stage('Push User Service') {
-                     steps {
+                    steps {
                         script {
-                            def userImage = docker.image("${DOCKER_HUB_USER}/user-service:${BUILD_NUMBER}")
-                            userImage.push()
-                            
-                            // Создаем тег latest и пушим его
-                            userImage.tag('latest')
-                            docker.image("${DOCKER_HUB_USER}/user-service:latest").push()
+                            docker.withRegistry('https://index.docker.io/v1/', DOCKER_CREDENTIALS_ID) {
+                                def userImage = docker.image("${DOCKER_HUB_USER}/user-service:${BUILD_NUMBER}")
+                                userImage.push()
+                                
+                                // Создаем тег latest и пушим его
+                                userImage.tag('latest')
+                                docker.image("${DOCKER_HUB_USER}/user-service:latest").push()
+                            }
                         }
                     }
                 }
                 stage('Push Order Service') {
                     steps {
                         script {
-                            def orderImage = docker.image("${DOCKER_HUB_USER}/order-service:${BUILD_NUMBER}")
-                            orderImage.push()
-                            
-                            // Создаем тег latest и пушим его
-                            orderImage.tag('latest')
-                            docker.image("${DOCKER_HUB_USER}/order-service:latest").push()
+                            docker.withRegistry('https://index.docker.io/v1/', DOCKER_CREDENTIALS_ID) {
+                                def orderImage = docker.image("${DOCKER_HUB_USER}/order-service:${BUILD_NUMBER}")
+                                orderImage.push()
+                                
+                                // Создаем тег latest и пушим его
+                                orderImage.tag('latest')
+                                docker.image("${DOCKER_HUB_USER}/order-service:latest").push()
+                            }
                         }
                     }
                 }
                 stage('Push Gateway') {
                     steps {
                         script {
-                            def gatewayImage = docker.image("${DOCKER_HUB_USER}/gateway:${BUILD_NUMBER}")
-                            gatewayImage.push()
-                            
-                            // Создаем тег latest и пушим его
-                            gatewayImage.tag('latest')
-                            docker.image("${DOCKER_HUB_USER}/gateway:latest").push()
+                            docker.withRegistry('https://index.docker.io/v1/', DOCKER_CREDENTIALS_ID) {
+                                def gatewayImage = docker.image("${DOCKER_HUB_USER}/gateway:${BUILD_NUMBER}")
+                                gatewayImage.push()
+                                
+                                // Создаем тег latest и пушим его
+                                gatewayImage.tag('latest')
+                                docker.image("${DOCKER_HUB_USER}/gateway:latest").push()
+                            }
                         }
+                    }
+                }
             }
         }
         
