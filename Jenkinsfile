@@ -42,8 +42,7 @@ pipeline {
         stage('Test Services') {
             steps {
                 sh '''
-                    # Принудительно останавливаем все контейнеры, чтобы освободить порты 5000 и 3000
-                    docker stop $(docker ps -q) || true
+                    # Удаляем старые тестовые контейнеры, если они остались
                     docker rm -f test-user test-order || true
                     
                     echo "=== Testing User Service ==="
@@ -53,9 +52,10 @@ pipeline {
                     docker rm -f test-user
                     
                     echo "=== Testing Order Service ==="
-                    docker run -d --name test-order -p 3000:3000 ${DOCKER_HUB_USER}/order-service:${BUILD_NUMBER}
+                    # ВНИМАНИЕ: Используем порт 3001 на хосте, чтобы избежать конфликта с занятым 3000
+                    docker run -d --name test-order -p 3001:3000 ${DOCKER_HUB_USER}/order-service:${BUILD_NUMBER}
                     sleep 5
-                    curl -f http://localhost:3000/health || exit 1
+                    curl -f http://localhost:3001/health || exit 1
                     docker rm -f test-order
                 '''
             }
