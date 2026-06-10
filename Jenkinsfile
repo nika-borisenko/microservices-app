@@ -107,8 +107,8 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        docker-compose down || true
-                        docker-compose up -d
+                        docker compose down || true
+                        docker compose up -d
                     '''
                 }
             }
@@ -121,7 +121,7 @@ pipeline {
         }
         failure {
             echo 'Ошибка в одном из сервисов!'
-            sh 'docker-compose down'
+            sh 'docker compose down'
         }
     }
 }
