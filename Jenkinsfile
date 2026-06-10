@@ -40,43 +40,24 @@ pipeline {
         }
         
         stage('Test Services') {
-            parallel {
-                stage('Test User Service') {
-                    steps {
-                        script {
-                            sh '''
-                            docker stop $(docker ps -q) || true
-                            docker rm -f test-user test-order || true
-                        
-                            echo "=== Testing User Service ==="
-                            docker run -d --name test-user -p 5000:5000 ${DOCKER_HUB_USER}/user-service:${BUILD_NUMBER}
-                            sleep 5
-                            curl -f http://localhost:5000/health || exit 1
-                            docker rm -f test-user
-                            
-                            echo "=== Testing Order Service ==="
-                            docker run -d --name test-order -p 3000:3000 ${DOCKER_HUB_USER}/order-service:${BUILD_NUMBER}
-                            sleep 5
-                            curl -f http://localhost:3000/health || exit 1
-                            docker rm -f test-order
-                            '''
-                        }
-                    }
-                }
-                stage('Test Order Service') {
-                    steps {
-                        script {
-                            sh '''
-                                docker compose down || true
-                                docker rm -f test-order || true
-                                docker run -d --name test-order -p 3000:3000 ${DOCKER_HUB_USER}/order-service:${BUILD_NUMBER}
-                                sleep 5
-                                curl -f http://localhost:3000/health || exit 1
-                                docker rm -f test-order
-                            '''
-                        }
-                    }
-                }
+            steps {
+                sh '''
+                    # Принудительно останавливаем все контейнеры, чтобы освободить порты 5000 и 3000
+                    docker stop $(docker ps -q) || true
+                    docker rm -f test-user test-order || true
+                    
+                    echo "=== Testing User Service ==="
+                    docker run -d --name test-user -p 5000:5000 ${DOCKER_HUB_USER}/user-service:${BUILD_NUMBER}
+                    sleep 5
+                    curl -f http://localhost:5000/health || exit 1
+                    docker rm -f test-user
+                    
+                    echo "=== Testing Order Service ==="
+                    docker run -d --name test-order -p 3000:3000 ${DOCKER_HUB_USER}/order-service:${BUILD_NUMBER}
+                    sleep 5
+                    curl -f http://localhost:3000/health || exit 1
+                    docker rm -f test-order
+                '''
             }
         }
         
@@ -117,12 +98,10 @@ pipeline {
         
         stage('Deploy') {
             steps {
-                script {
-                    sh '''
-                        docker compose down || true
-                        docker compose up -d
-                    '''
-                }
+                sh '''
+                    docker compose down || true
+                    docker compose up -d
+                '''
             }
         }
     }
