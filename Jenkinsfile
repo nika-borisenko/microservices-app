@@ -3,7 +3,7 @@ pipeline {
     
     environment {
         DOCKER_HUB_USER = 'ВАШ_LOGIN_DOCKER_HUB'
-        DOCKER_CREDENTIALS_ID = 'docker-hub-credentials'
+        DOCKER_CREDENTIALS_ID = 'docker-hub'
     }
     
     stages {
