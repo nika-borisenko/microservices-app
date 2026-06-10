@@ -45,10 +45,11 @@ pipeline {
                     steps {
                         script {
                             sh '''
-                                docker run -d --name test-user ${DOCKER_HUB_USER}/user-service:${BUILD_NUMBER}
+                                docker rm -f test-user || true
+                                docker run -d --name test-user -p 5000:5000 ${DOCKER_HUB_USER}/user-service:${BUILD_NUMBER}
                                 sleep 5
                                 curl -f http://localhost:5000/health || exit 1
-                                docker stop test-user && docker rm test-user
+                                docker rm -f test-user
                             '''
                         }
                     }
@@ -57,10 +58,11 @@ pipeline {
                     steps {
                         script {
                             sh '''
-                                docker run -d --name test-order ${DOCKER_HUB_USER}/order-service:${BUILD_NUMBER}
+                                docker rm -f test-user || true
+                                docker run -d --name test-user -p 5000:5000 ${DOCKER_HUB_USER}/user-service:${BUILD_NUMBER}
                                 sleep 5
-                                curl -f http://localhost:3000/health || exit 1
-                                docker stop test-order && docker rm test-order
+                                curl -f http://localhost:5000/health || exit 1
+                                docker rm -f test-user
                             '''
                         }
                     }
