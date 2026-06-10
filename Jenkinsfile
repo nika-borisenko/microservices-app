@@ -59,9 +59,9 @@ pipeline {
                         script {
                             sh '''
                                 docker rm -f test-user || true
-                                docker run -d --name test-user -p 5000:5000 ${DOCKER_HUB_USER}/user-service:${BUILD_NUMBER}
+                                docker run -d --name test-user -p 3000:3000 ${DOCKER_HUB_USER}/user-service:${BUILD_NUMBER}
                                 sleep 5
-                                curl -f http://localhost:5000/health || exit 1
+                                curl -f http://localhost:3000/health || exit 1
                                 docker rm -f test-user
                             '''
                         }
