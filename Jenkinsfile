@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/ВАШ_USER/microservices-app.git'
+                git branch: 'main', url: 'https://github.com/nika-borisenko/microservices-app'
             }
         }
         
