@@ -64,35 +64,39 @@ pipeline {
         stage('Push Images') {
             parallel {
                 stage('Push User Service') {
-                    steps {
+                     steps {
                         script {
-                            docker.withRegistry('https://index.docker.io/v1/', DOCKER_CREDENTIALS_ID) {
-                                docker.image("${DOCKER_HUB_USER}/user-service:${BUILD_NUMBER}").push()
-                                docker.image("${DOCKER_HUB_USER}/user-service:latest").push()
-                            }
+                            def userImage = docker.image("${DOCKER_HUB_USER}/user-service:${BUILD_NUMBER}")
+                            userImage.push()
+                            
+                            // Создаем тег latest и пушим его
+                            userImage.tag('latest')
+                            docker.image("${DOCKER_HUB_USER}/user-service:latest").push()
                         }
                     }
                 }
                 stage('Push Order Service') {
                     steps {
                         script {
-                            docker.withRegistry('https://index.docker.io/v1/', DOCKER_CREDENTIALS_ID) {
-                                docker.image("${DOCKER_HUB_USER}/order-service:${BUILD_NUMBER}").push()
-                                docker.image("${DOCKER_HUB_USER}/order-service:latest").push()
-                            }
+                            def orderImage = docker.image("${DOCKER_HUB_USER}/order-service:${BUILD_NUMBER}")
+                            orderImage.push()
+                            
+                            // Создаем тег latest и пушим его
+                            orderImage.tag('latest')
+                            docker.image("${DOCKER_HUB_USER}/order-service:latest").push()
                         }
                     }
                 }
                 stage('Push Gateway') {
                     steps {
                         script {
-                            docker.withRegistry('https://index.docker.io/v1/', DOCKER_CREDENTIALS_ID) {
-                                docker.image("${DOCKER_HUB_USER}/gateway:${BUILD_NUMBER}").push()
-                                docker.image("${DOCKER_HUB_USER}/gateway:latest").push()
-                            }
+                            def gatewayImage = docker.image("${DOCKER_HUB_USER}/gateway:${BUILD_NUMBER}")
+                            gatewayImage.push()
+                            
+                            // Создаем тег latest и пушим его
+                            gatewayImage.tag('latest')
+                            docker.image("${DOCKER_HUB_USER}/gateway:latest").push()
                         }
-                    }
-                }
             }
         }
         
