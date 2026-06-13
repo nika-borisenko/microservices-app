@@ -10,6 +10,6 @@ app.get('/orders', (req, res) => {
     res.json({ orders: [{ id: 1, product: 'Laptop' }] });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`Order service running on port ${PORT}`);
 });
