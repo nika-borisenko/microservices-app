@@ -9,7 +9,13 @@ def health():
 
 @app.route('/api/users')
 def get_users():
-    return jsonify({'users': [{'id': 1, 'name': 'Admin'}]})
+    users = [{'id': 1, 'name': 'Admin'}]
+    
+    if os.getenv('FEATURE_NEW_UI', 'false').lower() == 'true':
+        users[0]['role'] = 'SuperAdmin'
+        users[0]['badge'] = 'Early Access'
+        
+    return jsonify({'users': users})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
