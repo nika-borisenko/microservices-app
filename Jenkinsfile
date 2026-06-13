@@ -42,9 +42,7 @@ pipeline {
                         script {
                             sh '''
                                 docker rm -f test-user || true
-                                # ИСПРАВЛЕНО: Пробрасываем на порт 5001 хоста, чтобы избежать конфликтов
-                                docker run -d --name test-user -p 5001:5000 ${DOCKER_HUB_USER}/user-service:${BUILD_NUMBER}
-                                echo "Waiting for User Service to start..."
+                                docker run -d --name test-user -p 5001:5000 nika16/user-service:${BUILD_NUMBER}
                                 sleep 5
                                 curl -f http://localhost:5001/health || exit 1
                                 docker stop test-user
@@ -58,9 +56,7 @@ pipeline {
                         script {
                             sh '''
                                 docker rm -f test-order || true
-                                # ИСПРАВЛЕНО: Пробрасываем на порт 3001 хоста, чтобы избежать конфликтов
-                                docker run -d --name test-order -p 3001:3000 ${DOCKER_HUB_USER}/order-service:${BUILD_NUMBER}
-                                echo "Waiting for Order Service to start..."
+                                docker run -d --name test-order -p 3001:3000 nika16/order-service:${BUILD_NUMBER}
                                 sleep 5
                                 curl -f http://localhost:3001/health || exit 1
                                 docker stop test-order
@@ -109,7 +105,6 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        # ИСПРАВЛЕНО: Используем 'docker compose' (через пробел) вместо 'docker-compose'
                         docker compose down || true
                         docker compose up -d --build
                     '''
@@ -119,11 +114,10 @@ pipeline {
     }
     post {
         success {
-            echo 'Все микросервисы успешно развернуты!'
+            echo 'All microservices deployed successfully!'
         }
         failure {
-            echo 'Ошибка в одном из сервисов! Проверьте логи выше.'
-            # ИСПРАВЛЕНО: Используем 'docker compose' (через пробел)
+            echo 'Error in one of the services!'
             sh 'docker compose down || true'
             sh 'docker rm -f test-user test-order || true'
         }
