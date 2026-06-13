@@ -6,7 +6,7 @@ app.get('/health', (req, res) => {
     res.json({ status: 'healthy', service: 'order-service' });
 });
 
-app.get('/orders', (req, res) => {
+app.get('api/orders', (req, res) => {
     res.json({ orders: [{ id: 1, product: 'Laptop' }] });
 });
 
