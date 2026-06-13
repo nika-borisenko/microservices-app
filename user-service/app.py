@@ -7,7 +7,7 @@ app = Flask(__name__)
 def health():
     return jsonify({'status': 'healthy', 'service': 'user-service'})
 
-@app.route('api/users')
+@app.route('/api/users')
 def get_users():
     return jsonify({'users': [{'id': 1, 'name': 'Admin'}]})
 
