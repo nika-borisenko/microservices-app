@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        DOCKER_HUB_USER = 'nika16' 
+        DOCKER_HUB_USER = 'nika16'
         DOCKER_CREDENTIALS_ID = 'docker-hub-credentials'
     }
     stages {
@@ -41,14 +41,12 @@ pipeline {
                     steps {
                         script {
                             sh '''
-                                # Удаляем старый тестовый контейнер, если он завис
                                 docker rm -f test-user || true
-                                # ИСПРАВЛЕНО: Добавлен проброс порта -p 5000:5000
-                                docker run -d --name test-user -p 5000:5000 ${DOCKER_HUB_USER}/user-service:${BUILD_NUMBER}
+                                # ИСПРАВЛЕНО: Пробрасываем на порт 5001 хоста, чтобы избежать конфликтов
+                                docker run -d --name test-user -p 5001:5000 ${DOCKER_HUB_USER}/user-service:${BUILD_NUMBER}
                                 echo "Waiting for User Service to start..."
                                 sleep 5
-                                # Проверяем здоровье
-                                curl -f http://localhost:5000/health || exit 1
+                                curl -f http://localhost:5001/health || exit 1
                                 docker stop test-user
                                 docker rm test-user
                             '''
@@ -59,14 +57,12 @@ pipeline {
                     steps {
                         script {
                             sh '''
-                                # Удаляем старый тестовый контейнер, если он завис
                                 docker rm -f test-order || true
-                                # ИСПРАВЛЕНО: Пробрасываем порт 3000 на 3000 (чтобы не путаться)
-                                docker run -d --name test-order -p 3000:3000 ${DOCKER_HUB_USER}/order-service:${BUILD_NUMBER}
+                                # ИСПРАВЛЕНО: Пробрасываем на порт 3001 хоста, чтобы избежать конфликтов
+                                docker run -d --name test-order -p 3001:3000 ${DOCKER_HUB_USER}/order-service:${BUILD_NUMBER}
                                 echo "Waiting for Order Service to start..."
                                 sleep 5
-                                # ИСПРАВЛЕНО: Обращаемся к localhost:3000
-                                curl -f http://localhost:3000/health || exit 1
+                                curl -f http://localhost:3001/health || exit 1
                                 docker stop test-order
                                 docker rm test-order
                             '''
@@ -113,8 +109,9 @@ pipeline {
             steps {
                 script {
                     sh '''
-                        docker-compose down || true
-                        docker-compose up -d --build
+                        # ИСПРАВЛЕНО: Используем 'docker compose' (через пробел) вместо 'docker-compose'
+                        docker compose down || true
+                        docker compose up -d --build
                     '''
                 }
             }
@@ -126,7 +123,8 @@ pipeline {
         }
         failure {
             echo 'Ошибка в одном из сервисов! Проверьте логи выше.'
-            sh 'docker-compose down || true'
+            # ИСПРАВЛЕНО: Используем 'docker compose' (через пробел)
+            sh 'docker compose down || true'
             sh 'docker rm -f test-user test-order || true'
         }
     }
