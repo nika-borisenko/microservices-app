@@ -1,18 +1,15 @@
 pipeline {
     agent any
-    
     environment {
-        DOCKER_HUB_USER = 'nika16'
-        DOCKER_CREDENTIALS_ID = 'docker-hub'
+        DOCKER_HUB_USER = 'nika16' 
+        DOCKER_CREDENTIALS_ID = 'docker-hub-credentials'
     }
-    
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/nika-borisenko/microservices-app'
+                git branch: 'main', url: 'https://github.com/nika-borisenko/microservices-app.git'
             }
         }
-        
         stage('Build Services') {
             parallel {
                 stage('Build User Service') {
@@ -38,38 +35,53 @@ pipeline {
                 }
             }
         }
-        
         stage('Test Services') {
-            steps {
-                sh '''
-                    docker rm -f test-user test-order || true
-                    
-                    echo "=== Testing User Service ==="
-                    docker run -d --name test-user -p 5000:5000 ${DOCKER_HUB_USER}/user-service:${BUILD_NUMBER}
-                    sleep 5
-                    curl -f http://localhost:5000/health || exit 1
-                    docker rm -f test-user
-                    
-                    echo "=== Testing Order Service ==="
-                    docker run -d --name test-order -p 3001:3000 ${DOCKER_HUB_USER}/order-service:${BUILD_NUMBER}
-                    sleep 5
-                    curl -f http://localhost:3001/health || exit 1
-                    docker rm -f test-order
-                '''
+            parallel {
+                stage('Test User Service') {
+                    steps {
+                        script {
+                            sh '''
+                                # Удаляем старый тестовый контейнер, если он завис
+                                docker rm -f test-user || true
+                                # ИСПРАВЛЕНО: Добавлен проброс порта -p 5000:5000
+                                docker run -d --name test-user -p 5000:5000 ${DOCKER_HUB_USER}/user-service:${BUILD_NUMBER}
+                                echo "Waiting for User Service to start..."
+                                sleep 5
+                                # Проверяем здоровье
+                                curl -f http://localhost:5000/health || exit 1
+                                docker stop test-user
+                                docker rm test-user
+                            '''
+                        }
+                    }
+                }
+                stage('Test Order Service') {
+                    steps {
+                        script {
+                            sh '''
+                                # Удаляем старый тестовый контейнер, если он завис
+                                docker rm -f test-order || true
+                                # ИСПРАВЛЕНО: Пробрасываем порт 3000 на 3000 (чтобы не путаться)
+                                docker run -d --name test-order -p 3000:3000 ${DOCKER_HUB_USER}/order-service:${BUILD_NUMBER}
+                                echo "Waiting for Order Service to start..."
+                                sleep 5
+                                # ИСПРАВЛЕНО: Обращаемся к localhost:3000
+                                curl -f http://localhost:3000/health || exit 1
+                                docker stop test-order
+                                docker rm test-order
+                            '''
+                        }
+                    }
+                }
             }
         }
-        
         stage('Push Images') {
             parallel {
                 stage('Push User Service') {
                     steps {
                         script {
                             docker.withRegistry('https://index.docker.io/v1/', DOCKER_CREDENTIALS_ID) {
-                                def userImage = docker.image("${DOCKER_HUB_USER}/user-service:${BUILD_NUMBER}")
-                                userImage.push()
-                                
-                                // Создаем тег latest и пушим его
-                                userImage.tag('latest')
+                                docker.image("${DOCKER_HUB_USER}/user-service:${BUILD_NUMBER}").push()
                                 docker.image("${DOCKER_HUB_USER}/user-service:latest").push()
                             }
                         }
@@ -79,11 +91,7 @@ pipeline {
                     steps {
                         script {
                             docker.withRegistry('https://index.docker.io/v1/', DOCKER_CREDENTIALS_ID) {
-                                def orderImage = docker.image("${DOCKER_HUB_USER}/order-service:${BUILD_NUMBER}")
-                                orderImage.push()
-                                
-                                // Создаем тег latest и пушим его
-                                orderImage.tag('latest')
+                                docker.image("${DOCKER_HUB_USER}/order-service:${BUILD_NUMBER}").push()
                                 docker.image("${DOCKER_HUB_USER}/order-service:latest").push()
                             }
                         }
@@ -93,11 +101,7 @@ pipeline {
                     steps {
                         script {
                             docker.withRegistry('https://index.docker.io/v1/', DOCKER_CREDENTIALS_ID) {
-                                def gatewayImage = docker.image("${DOCKER_HUB_USER}/gateway:${BUILD_NUMBER}")
-                                gatewayImage.push()
-                                
-                                // Создаем тег latest и пушим его
-                                gatewayImage.tag('latest')
+                                docker.image("${DOCKER_HUB_USER}/gateway:${BUILD_NUMBER}").push()
                                 docker.image("${DOCKER_HUB_USER}/gateway:latest").push()
                             }
                         }
@@ -105,24 +109,25 @@ pipeline {
                 }
             }
         }
-        
         stage('Deploy') {
             steps {
-                sh '''
-                    docker compose down || true
-                    docker compose up -d
-                '''
+                script {
+                    sh '''
+                        docker-compose down || true
+                        docker-compose up -d --build
+                    '''
+                }
             }
         }
     }
-    
     post {
         success {
             echo 'Все микросервисы успешно развернуты!'
         }
         failure {
-            echo 'Ошибка в одном из сервисов!'
-            sh 'docker compose down'
+            echo 'Ошибка в одном из сервисов! Проверьте логи выше.'
+            sh 'docker-compose down || true'
+            sh 'docker rm -f test-user test-order || true'
         }
     }
 }
